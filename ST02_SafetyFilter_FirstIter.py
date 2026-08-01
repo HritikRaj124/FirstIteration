@@ -1,7 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
+from mujoco_py import mjviewer
 
+mjviewer
 # Parameters
 T = 0.5
 N_sim = 50
@@ -17,7 +19,7 @@ y_obs = 2.5
 r_obs = 0.8
 
 # CBF parameter
-gain_alpha = 1
+gain_alpha = 1.5
 
 # controller
 gain_nom_k = 1
@@ -35,8 +37,8 @@ def cbf(xi, x_obs, y_obs, r_obs):
     dh_dy = 2*(xi[1] - y_obs)
     dh = np.array([dh_dx, dh_dy])
 
-    fx = np.zeros(2, dtype= int)
-    gx = np.identity(2, dtype = int)
+    fx = np.zeros(2, dtype= float)
+    gx = np.identity(2, dtype = float)
 
     lf_h = dh @ fx
     lg_h = dh @ gx
@@ -47,10 +49,7 @@ def nom_controller(xi, goal, gain_nom_k, v_max):
 
     u_nom = -gain_nom_k*(xi - goal)
 
-    speed = np.linalg.norm(u_nom)
-
-    if speed > v_max:
-        u_nom = v_max * u_nom / np.linalg.norm(u_nom)
+    speed = np.sum((u_nom)**2)
 
     return u_nom
 
@@ -59,14 +58,14 @@ def safety_filter(u_nom, xi, x_obs, y_obs, r_obs, gain_alpha, v_max):
     h, lf_h, lg_h = cbf(xi, x_obs, y_obs, r_obs)
 
     def cost(u):
-        J = np.linalg.norm(u - u_nom)**2
+        J = np.sum((u - u_nom)**2)
         return J
 
     cbf_con = { 'type' : 'ineq', 'fun' : lambda u: lf_h + lg_h @ u + gain_alpha * h}
 
-    #bounds = [(-v_max, v_max), (-v_max, v_max)]
+    bounds = [(-v_max, v_max), (-v_max, v_max)]
 
-    result = minimize(cost, u_nom, method='slsqp', constraints=cbf_con)
+    result = minimize(cost, u_nom, method='slsqp', constraints=cbf_con, bounds=bounds)
 
     return result.x
 

@@ -60,11 +60,11 @@ def safety_filter(u_nom, xi_self, xi_other, d_min, alpha_gain, v_max):
         J = np.linalg.norm(u - u_nom)**2
         return J
 
-    cbf_cons = {'type': 'ineq', 'fun' : lambda u : lf_h + lg_h @ u + alpha_gain * h12}
+    cbf_con = {'type': 'ineq', 'fun' : lambda u : lf_h + lg_h @ u + alpha_gain * h12 }
 
     bounds = [(-v_max, v_max), (-v_max, v_max)]
 
-    result = minimize(cost, u_nom, method='SLSQP', constraints=cbf_cons, bounds=bounds)
+    result = minimize(cost, u_nom, method='SLSQP', constraints=cbf_con , bounds=bounds)
     return result.x
 
 # storage
@@ -112,7 +112,6 @@ for i in range(N_sim):
     u_safe_2 = safety_filter(u_nom_2, xi_filt_2, xi_filt_1, d_min, alpha_gain, v_max)
 
     h, lf_h, lg_h = cbf_pair(xi_filt_1, xi_filt_2, d_min)
-    #print(f"Step {i} | h={h:.3f} | u_nom={u_nom} | u_safe={u_safe}")
 
     h_filt[i] = h
     xi_filt_1 = xi_filt_1 + T * u_safe_1
@@ -121,12 +120,14 @@ for i in range(N_sim):
     traj_filt_1[:, i + 1] = xi_filt_1
     traj_filt_2[:, i + 1] = xi_filt_2
 
-    # After computing u_safe_1 and u_safe_2
-if np.linalg.norm(u_safe_1 - u_nom_1) > 1e-4:
-    intervention_1[i] = 1
+    if np.linalg.norm(u_safe_1 - u_nom_1) > 1e-4:
+        intervention_1[i] = 1
 
-if np.linalg.norm(u_safe_2 - u_nom_2) > 1e-4:
-    intervention_2[i] = 1
+
+    if np.linalg.norm(u_safe_2 - u_nom_2) > 1e-4:
+        intervention_2[i] = 1
+
+
 
 plt.figure()
 plt.step(range(N_sim), intervention_1, 'r*', label='Robot 1 intervention')
@@ -136,7 +137,7 @@ plt.ylabel('Intervention (1=active)')
 plt.title('CBF Intervention Diagnostics')
 plt.legend()
 plt.grid(True)
-plt.savefig('intervention_ST20.png')
+#plt.savefig('intervention_ST20.png')
 
 plt.figure()
 plt.plot(traj_nom_1[0, :], traj_nom_1[1, :], 'r--', label='Robot 1 Nominal')
@@ -153,7 +154,7 @@ plt.title('Multi-Robot CBF Safety Filter')
 plt.legend()
 plt.grid(True)
 plt.axis('equal')
-plt.savefig('Trajectory_ST20.png')
+#plt.savefig('Trajectory_ST20.png')
 
 plt.figure()
 plt.plot(h_nom,  'r--', label='h nominal')
@@ -166,7 +167,7 @@ plt.title('Pairwise Safety Margin Over Time')
 plt.legend()
 plt.grid(True)
 plt.show()
-plt.savefig('pairwise_distance_ST20.png')
+#plt.savefig('pairwise_distance_ST20.png')
 
 # Liveness check
 goal_threshold = 0.2

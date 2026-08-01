@@ -1,0 +1,66 @@
+{
+  "control_dt_s": 0.02,
+  "coworker_phase": 0.0,
+  "min_pelvis_height_m": 0.76,
+  "n_ticks": 100,
+  "package": "g1_mujoco_standard",
+  "passive_safety": {
+    "action_applied": false,
+    "closest_relevant_point": "right_palm",
+    "eef_only_understates_risk": true,
+    "first_hard_violation_s": null,
+    "first_hard_warning_s": 0.0,
+    "hard_violation_count": 0,
+    "hard_warning_count": 100,
+    "max_gamma": 0.6052609983783245,
+    "max_intervention_level": 2,
+    "min_eef_margin_m": 0.03947390016216755,
+    "min_relevant_margin_m": 0.03947390016216755,
+    "n_messages": 100,
+    "output_paths": {
+      "bimanual_object_y": "C:\\Users\\Hritik Raj\\g1-mujoco-standard\\outputs\\nominal_manipulation_fixed_legs\\bimanual_object_y.png",
+      "bimanual_topdown": "C:\\Users\\Hritik Raj\\g1-mujoco-standard\\outputs\\nominal_manipulation_fixed_legs\\bimanual_topdown.png",
+      "coworker_margin": "C:\\Users\\Hritik Raj\\g1-mujoco-standard\\outputs\\nominal_manipulation_fixed_legs\\coworker_margin.png",
+      "messages_jsonl": "C:\\Users\\Hritik Raj\\g1-mujoco-standard\\outputs\\nominal_manipulation_fixed_legs\\messages.jsonl",
+      "passive_safety_messages": "C:\\Users\\Hritik Raj\\g1-mujoco-standard\\outputs\\nominal_manipulation_fixed_legs\\passive_safety_messages.png",
+      "rollout_jsonl": "C:\\Users\\Hritik Raj\\g1-mujoco-standard\\outputs\\nominal_manipulation_fixed_legs\\rollout.jsonl"
+    },
+    "soft_warning_count": 0,
+    "stance_maintained": true,
+    "task_success": false
+  },
+  "plots_enabled": true,
+  "rendered": false,
+  "run": "nominal_manipulation_fixed_legs",
+  "scenario": "standing_g1_coworker_passive_safety_messages",
+  "stance_maintained": true,
+  "status": "completed",
+  "success": {
+    "left_obj_final": [
+      -0.3200054352795107,
+      0.18000005188124227,
+      0.8394266787565424
+    ],
+    "left_placement_error_xy": 0.2150000519499452,
+    "left_target": [
+      -0.32,
+      -0.035,
+      0.8400000000000001
+    ],
+    "objects_on_shelf": true,
+    "right_obj_final": [
+      -0.32000601825960606,
+      -0.17999493500463418,
+      0.8394262263744939
+    ],
+    "right_placement_error_xy": 0.21499493508886747,
+    "right_target": [
+      -0.32,
+      0.035,
+      0.8400000000000001
+    ],
+    "success": false
+  },
+  "truncated_duration_s": 2.0,
+  "videos": {}
+}
