@@ -1,0 +1,4 @@
+WARNING Sat Aug 22 23:50:20 2026: Could not open file '' for writing mjModel
+
+WARNING Sat Aug 22 23:50:20 2026: Could not open file '' for writing mjModel
+

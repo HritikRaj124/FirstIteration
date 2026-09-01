@@ -1,80 +1,123 @@
-import mujoco
+"""Configuration and external-asset resolution for G1 MuJoCo standard.
+
+This module owns:
+- repository-local paths and the output root,
+- resolution of the external ``g1-manipulation-challenge`` asset directory,
+- import of the vendor standalone module (``run.py``) as a reusable library.
+
+The vendor repository lives *outside* this repository (assets are not committed
+here). It is resolved via the ``G1_MANIPULATION_CHALLENGE_DIR`` environment
+variable, falling back to ``~/robot_assets/external_baselines/g1-manipulation-challenge``
+which matches the local robot-asset convention used during extraction.
+
+The vendor ``run.py`` is import-safe (its entry point is guarded by
+``if __name__ == "__main__"``). We load it under a unique module name so that we
+reuse its ``ONNXPolicy``, ``G1Controller``, ``CameraRenderer`` and ``set_armature``
+implementations instead of duplicating the simulation logic.
+"""
+
+from __future__ import annotations
+
+import importlib.util
+import os
+import sys
 from pathlib import Path
-import time
-import mujoco.viewer
-from dataclasses import dataclass
-from dataclasses import asdict
-import json
-from mujoco._enums import mjtObj
+from types import ModuleType
 
-@dataclass
-class Summary:
-    joint_name: str
-    joint_id: int
-    actuator_id: int
-    angle_before: float
-    angle_after: float
+PACKAGE_NAME = "g1_mujoco_standard"
+STUDY_NAME = PACKAGE_NAME
 
-g1_dir = Path(r"C:\Users\HRITIK~1\AppData\Local\Temp\my_g1_no_gravity_h7p621ol")
+REPO_ROOT = Path(__file__).resolve().parents[2]
+PACKAGE_DIR = Path(__file__).resolve().parent
+OUTPUT_ROOT = REPO_ROOT / "outputs"
 
-model = mujoco.MjModel.from_xml_path(str(g1_dir / "g1.xml"))
-print("njnt:", model.njnt)
-print("nu:", model.nu)
-data = mujoco.MjData(model)
+# External baseline asset (cloned outside the repo).
+G1_CHALLENGE_ENV = "G1_MANIPULATION_CHALLENGE_DIR"
+DEFAULT_G1_CHALLENGE_DIR = (
+    Path.home() / "robot_assets" / "external_baselines" / "g1-manipulation-challenge"
+)
 
-for i in range(model.njnt):
-    name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_JOINT, i)
-    print(i, name)
+# Unique module name used when importing the vendor run.py as a library.
+_VENDOR_MODULE_NAME = "g1_mujoco_standard_g1_challenge_vendor"
 
-right_arm_joint = [
-    "right_shoulder_pitch_joint",
-    "right_shoulder_roll_joint",
-    "right_shoulder_yaw_joint",
-    "right_elbow_joint",
-    "right_wrist_roll_joint",
-    "right_wrist_pitch_joint",
-    "right_wrist_yaw_joint",
-]
+# Scene-level body / site names (from scene.xml and g1.xml).
+RED_BLOCK_BODY = "red_block"
+SOURCE_TABLE_BODY = "table"          # brown source table
+TARGET_TABLE_BODY = "table_white"    # drop-off table
+RIGHT_PALM_SITE = "right_palm"
 
-right_arm_joint_id = []
-qpos_addr = []
-actuator_id = []
+# Cameras available in the scene (scene.xml + g1.xml).
+SCENE_CAMERAS: tuple[str, ...] = (
+    "overhead",
+    "side_view",
+    "tracking",
+    "head_cam",
+    "wrist_cam",
+)
 
-for name in right_arm_joint:
-    jid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, name)
-    aid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_ACTUATOR, name)
-    right_arm_joint_id.append(jid)
-    qpos_addr.append(model.jnt_qposadr[jid])
-    actuator_id.append(aid)
+# Physics timestep used during policy training (must match for stable behavior).
+TRAIN_TIMESTEP = 0.005  # 200 Hz
+# Control decimation: policy runs every ``CONTROL_DECIMATION`` physics steps.
+CONTROL_DECIMATION = 4
 
-print(right_arm_joint)
-print(right_arm_joint_id)
-print(qpos_addr)
 
-control_inp = [5,5,7,8,5,6,9]
+def resolve_g1_challenge_dir() -> Path:
+    """Resolve the external g1-manipulation-challenge directory."""
 
-for aid, value in zip(actuator_id, control_inp):
-    data.ctrl[aid] = value
+    raw = os.environ.get(G1_CHALLENGE_ENV, "").strip()
+    base = Path(raw) if raw else DEFAULT_G1_CHALLENGE_DIR
+    return base.expanduser().resolve()
 
-current_angle = [data.qpos[addr] for addr in qpos_addr]
 
-log = []
+def vendor_scene_xml() -> Path:
+    return resolve_g1_challenge_dir() / "scene.xml"
 
-with mujoco.viewer.launch_passive(model,data) as viewer:
-    for step in range(2000000):
-        mujoco.mj_step(model,data)
-        current_angle = [data.qpos[addr] for addr in qpos_addr]
-        log.append(current_angle)
-        viewer.sync()
-        time.sleep(0.002)
 
-summaries = []
-for name, jid, aid, before, after in zip(
-    right_arm_joint, right_arm_joint_id, actuator_id, log[0], log[-1]):
-    s = Summary(joint_name=name, joint_id=int(jid), actuator_id=int(aid), angle_before=float(before), angle_after=float(after))
-    summaries.append(s)
+def vendor_model_config() -> Path:
+    return resolve_g1_challenge_dir() / "model_config.json"
 
-payload = [asdict(s) for s in summaries]
 
-with open("summary.json", "w") as f:
-    json.dump(payload, f, indent=2)
+def assets_available() -> bool:
+    """True when the external scene and the walker policy are present."""
+
+    base = resolve_g1_challenge_dir()
+    return (base / "scene.xml").is_file() and (base / "walker.onnx").is_file()
+
+
+def missing_assets_message() -> str:
+    base = resolve_g1_challenge_dir()
+    return (
+        "external g1-manipulation-challenge assets missing under "
+        f"{base}. Clone the repo there or set {G1_CHALLENGE_ENV}."
+    )
+
+
+def ensure_output_dir(run_name: str) -> Path:
+    out = OUTPUT_ROOT / run_name
+    out.mkdir(parents=True, exist_ok=True)
+    return out
+
+
+def load_vendor_module() -> ModuleType:
+    """Import the external ``run.py`` as a reusable library module.
+
+    The module is cached in ``sys.modules`` under a unique name so repeated calls
+    are cheap and the vendor's ``SCRIPT_DIR`` keeps pointing at its real on-disk
+    location (which is how it resolves ``scene.xml``, meshes, and ``*.onnx``).
+    """
+
+    if _VENDOR_MODULE_NAME in sys.modules:
+        return sys.modules[_VENDOR_MODULE_NAME]
+
+    base = resolve_g1_challenge_dir()
+    run_py = base / "run.py"
+    if not run_py.is_file():
+        raise FileNotFoundError(missing_assets_message())
+
+    spec = importlib.util.spec_from_file_location(_VENDOR_MODULE_NAME, str(run_py))
+    if spec is None or spec.loader is None:
+        raise ImportError(f"could not build import spec for vendor module: {run_py}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[_VENDOR_MODULE_NAME] = module
+    spec.loader.exec_module(module)
+    return module
