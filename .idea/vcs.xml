@@ -3,6 +3,8 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/mujoco_menagerie" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/my_g1_project/SCENARIO_2_TASK_CONS_WITH_DYNAMIC_OBSTACLE/ark_unitree_g1" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/my_g1_project/SCENARIO_2_TASK_CONS_WITH_DYNAMIC_OBSTACLE/ark_unitree_g1/tests/g1_mujoco_sim/unitree_sdk2_python" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/unitree_rl_mjlab" vcs="Git" />
   </component>
 </project>

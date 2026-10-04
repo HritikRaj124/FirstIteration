@@ -1,5 +1,5 @@
-<mujoco model="g1_29dof_rev_1_0 scene">
-  <include file="g1.xml"/>
+<mujoco model="g1.xml">
+  <include file="D:\FirstIteration\mujoco_menagerie\unitree_g1\g1.xml"/>
 
   <visual>
     <headlight diffuse="0.6 0.6 0.6" ambient="0.1 0.1 0.1" specular="0.9 0.9 0.9"/>

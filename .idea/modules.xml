@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/FirstIteration.iml" filepath="$PROJECT_DIR$/.idea/FirstIteration.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/mujoco_menagerie.iml" filepath="$PROJECT_DIR$/.idea/mujoco_menagerie.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/unitree_sdk2_python.iml" filepath="$PROJECT_DIR$/.idea/unitree_sdk2_python.iml" />
     </modules>
   </component>
 </project>
