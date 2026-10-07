@@ -1,13 +1,15 @@
-import mujoco
-import mujoco.viewer
-import time
-import tempfile
+"""Generate the partition pick-and-place scene from the MuJoCo Menagerie G1 model."""
+
+from __future__ import annotations
+
+import os
 from pathlib import Path
 
-g1_dir = Path(r"D:\FirstIteration\mujoco_menagerie\unitree_g1")
-text = (g1_dir / "scene.xml").read_text()
+import mujoco
 
-scene_fragment = """
+MENAGERIE_ENV = "G1_MENAGERIE_DIR"
+
+SCENE_FRAGMENT = """
     <body name="table" pos="0.5 0 0.713">
         <geom name="table_top" type="box" size="0.4 0.7 0.02" />
         <!--  Table legs  -->
@@ -30,29 +32,28 @@ scene_fragment = """
     </body>
 """
 
-marker = "</worldbody>"
-final_text = text.replace(marker, scene_fragment + "\n  " + marker, 1)
 
-my_scenario_dir = Path(r"D:\FirstIteration\my_g1_project\SCENARIO_1_OBJ_PICK&PLACE_PARTITION\scenarios\partition_task")
+def build_scene(menagerie_g1_dir: Path | None, out_path: Path) -> Path:
+    """Write out_path = Menagerie scene.xml + table, partition and object.
 
-scene_out = my_scenario_dir / "scene.xml"
-scene_out.write_text(final_text, encoding="utf-8")
+    menagerie_g1_dir defaults to $G1_MENAGERIE_DIR (the `unitree_g1` folder).
+    """
+    g1_dir = Path(menagerie_g1_dir or os.environ.get(MENAGERIE_ENV, ""))
+    src = g1_dir / "scene.xml"
+    if not src.is_file():
+        raise FileNotFoundError(
+            f"{src} not found. Pass --menagerie-dir or set ${MENAGERIE_ENV} "
+            "to the mujoco_menagerie/unitree_g1 folder."
+        )
 
-model = mujoco.MjModel.from_xml_path(str(scene_out))
-data = mujoco.MjData(model)
-print("Loaded successfully. njnt:", model.njnt, "| nbody:", model.nbody)
+    marker = "</worldbody>"
+    text = src.read_text()
+    if marker not in text:
+        raise ValueError(f"No {marker} in {src}")
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    patched = text.replace(marker, SCENE_FRAGMENT + "\n  " + marker, 1)
+    out_path.write_text(patched, encoding="utf-8")
 
-with mujoco.viewer.launch_passive(model, data) as viewer:
-    base_qpos = data.qpos[0:7].copy()
-    for step in range(2000):
-        data.qpos[0:7] = base_qpos
-        data.qvel[0:6] = 0.0
-        mujoco.mj_step(model, data)
-        mujoco.mj_forward(model, data)
-        viewer.sync()
-        time.sleep(0.001)
-
-
-aid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_ACTUATOR, "left_shoulder_pitch_joint")
-print("gaintype:", model.actuator_gaintype[aid])
-print("biastype:", model.actuator_biastype[aid])
+    model = mujoco.MjModel.from_xml_path(str(out_path))  # validate it loads
+    print(f"Wrote {out_path} (njnt={model.njnt}, nbody={model.nbody})")
+    return out_path

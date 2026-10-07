@@ -1,12 +1,13 @@
 """Comparison plots: nominal (unfiltered) vs. CBF-filtered rollout.
 
 Pure plotting library -- no simulation logic, no driver code. Called from
-nom_controller_with_CBF.py's main() with two logs (baseline, filtered).
+g1_cbf.cli with two logs (baseline, filtered).
 """
 
 from pathlib import Path
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
@@ -28,8 +29,9 @@ def _contiguous_spans(t, labels):
     return spans
 
 
-def plot_filter_comparison(baseline_log: list[dict], filtered_log: list[dict],
-                            out_dir: Path) -> dict[str, Path]:
+def plot_filter_comparison(
+    baseline_log: list[dict], filtered_log: list[dict], out_dir: Path
+) -> dict[str, Path]:
     """Compare an unfiltered (nominal) rollout against a CBF-filtered rollout:
     obstacle margins over time, tracking error, and violation counts."""
 
@@ -43,22 +45,32 @@ def plot_filter_comparison(baseline_log: list[dict], filtered_log: list[dict],
     # --- 1: partition + table margins over time, baseline vs filtered ----- #
     fig, axes = plt.subplots(2, 1, figsize=(9, 6), sharex=True)
 
-    axes[0].plot(t_b, [e["h_forearm"] for e in baseline_log], color="crimson", lw=1.2, label="nominal (unfiltered)")
+    axes[0].plot(
+        t_b, [e["h_forearm"] for e in baseline_log], color="crimson", lw=1.2, label="nominal (unfiltered)"
+    )
     axes[0].plot(t_f, [e["h_forearm"] for e in filtered_log], color="navy", lw=1.4, label="CBF-filtered")
     axes[0].axhline(0.0, color="black", lw=0.9)
     axes[0].set_ylabel("h(q) — partition [m]")
     axes[0].set_title("Forearm-segment barrier value: nominal vs. safety-filtered")
     axes[0].legend(loc="upper right", fontsize=8)
 
-    axes[1].plot(t_b, [e["h_forearm_table"] for e in baseline_log], color="crimson", lw=1.2, label="nominal (unfiltered)")
-    axes[1].plot(t_f, [e["h_forearm_table"] for e in filtered_log], color="navy", lw=1.4, label="CBF-filtered")
+    axes[1].plot(
+        t_b,
+        [e["h_forearm_table"] for e in baseline_log],
+        color="crimson",
+        lw=1.2,
+        label="nominal (unfiltered)",
+    )
+    axes[1].plot(
+        t_f, [e["h_forearm_table"] for e in filtered_log], color="navy", lw=1.4, label="CBF-filtered"
+    )
     axes[1].axhline(0.0, color="black", lw=0.9)
     axes[1].set_ylabel("h(q) — table [m]")
     axes[1].set_xlabel("time [s]")
     axes[1].legend(loc="upper right", fontsize=8)
 
     for ax in axes:
-        for name, t0, t1 in _contiguous_spans(t_b, phase_b):
+        for _name, t0, t1 in _contiguous_spans(t_b, phase_b):
             ax.axvspan(t0, t1, alpha=0.04, color="black")
 
     p = out_dir / "filter_comparison_margins.png"
@@ -86,14 +98,22 @@ def plot_filter_comparison(baseline_log: list[dict], filtered_log: list[dict],
         return sum(1 for e in log if e[key] < 0)
 
     labels = ["partition\n(palm margin)", "partition\n(forearm h)", "table\n(forearm h)"]
-    baseline_counts = [_viol(baseline_log, "margin"), _viol(baseline_log, "h_forearm"), _viol(baseline_log, "h_forearm_table")]
-    filtered_counts = [_viol(filtered_log, "margin"), _viol(filtered_log, "h_forearm"), _viol(filtered_log, "h_forearm_table")]
+    baseline_counts = [
+        _viol(baseline_log, "margin"),
+        _viol(baseline_log, "h_forearm"),
+        _viol(baseline_log, "h_forearm_table"),
+    ]
+    filtered_counts = [
+        _viol(filtered_log, "margin"),
+        _viol(filtered_log, "h_forearm"),
+        _viol(filtered_log, "h_forearm_table"),
+    ]
 
     fig, ax = plt.subplots(figsize=(7, 4.5))
     x = np.arange(len(labels))
     w = 0.35
-    ax.bar(x - w/2, baseline_counts, w, color="crimson", label="nominal (unfiltered)")
-    ax.bar(x + w/2, filtered_counts, w, color="navy", label="CBF-filtered")
+    ax.bar(x - w / 2, baseline_counts, w, color="crimson", label="nominal (unfiltered)")
+    ax.bar(x + w / 2, filtered_counts, w, color="navy", label="CBF-filtered")
     ax.set_xticks(x)
     ax.set_xticklabels(labels)
     ax.set_ylabel(f"violating ticks (of {len(baseline_log)})")
